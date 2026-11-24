@@ -70,6 +70,35 @@ class ApiIntegrationTests {
             .andExpect(status().isConflict());
     }
 
+    @Test
+    void deveExecutarCrudProfessor() throws Exception {
+        long id = criar("professores", Map.of("nome", "Carlos", "email", "carlos@example.test"));
+        var auth = httpBasic("teste", "senha-exclusiva-de-teste");
+        mvc.perform(get("/api/professores/{id}", id).with(auth))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.nome").value("Carlos"));
+        mvc.perform(put("/api/professores/{id}", id).with(auth)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(json.writeValueAsString(Map.of("nome", "Carlos Silva", "email", "carlos@example.test"))))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.nome").value("Carlos Silva"));
+        mvc.perform(delete("/api/professores/{id}", id).with(auth)).andExpect(status().isNoContent());
+        mvc.perform(get("/api/professores/{id}", id).with(auth)).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void deveConsultarIndicadoresECargaHoraria() throws Exception {
+        long p = criar("professores", Map.of("nome", "Lia", "email", "lia@example.test"));
+        long d = criar("disciplinas", Map.of("nome", "Redes", "codigo", "REDES", "cargaHoraria", 60));
+        long t = criar("turmas", Map.of("nome", "ADS C", "periodo", 4, "semestre", "2026.2"));
+        criar("horarios", aula(p, d, t, "08:00", "09:30"));
+        var auth = httpBasic("teste", "senha-exclusiva-de-teste");
+        mvc.perform(get("/api/professores/{id}/carga-horaria", p).with(auth))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.minutos").value(90))
+            .andExpect(jsonPath("$.horas").value(1)).andExpect(jsonPath("$.minutosRestantes").value(30));
+        mvc.perform(get("/api/indicadores").with(auth))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.professores").value(1))
+            .andExpect(jsonPath("$.horarios").value(1));
+    }
+
     private Map<String, Object> aula(long p, long d, long t, String inicio, String fim) {
         return Map.of("professorId", p, "disciplinaId", d, "turmaId", t,
             "diaSemana", "SEGUNDA", "horaInicio", inicio, "horaFim", fim);
