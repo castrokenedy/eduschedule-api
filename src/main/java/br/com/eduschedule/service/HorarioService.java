@@ -46,14 +46,16 @@ public class HorarioService {
 
     @Transactional
     public HorarioSaida atualizar(Long id, HorarioEntrada entrada) {
-        var horario = entidade(id);
+        var horario = repository.bloquearPorId(id)
+            .orElseThrow(() -> ApiException.naoEncontrado("Horario", id));
         preencher(horario, entrada);
         return saida(repository.saveAndFlush(horario));
     }
 
     @Transactional
     public void excluir(Long id) {
-        repository.delete(entidade(id));
+        repository.delete(repository.bloquearPorId(id)
+            .orElseThrow(() -> ApiException.naoEncontrado("Horario", id)));
         repository.flush();
     }
 
