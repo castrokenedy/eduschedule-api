@@ -1,6 +1,7 @@
 name: Java CI
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
   pull_request:
@@ -26,6 +27,44 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: relatorios-de-testes
+          path: |
+            target/surefire-reports/
+            target/site/jacoco/
+          if-no-files-found: warn
+
+  postgresql:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: eduschedule_test
+          POSTGRES_USER: teste
+          POSTGRES_PASSWORD: teste-ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U teste -d eduschedule_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 15
+    env:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/eduschedule_test
+      SPRING_DATASOURCE_USERNAME: teste
+      SPRING_DATASOURCE_PASSWORD: teste-ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Testar com PostgreSQL
+        run: mvn -B clean verify
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: relatorios-postgresql
           path: |
             target/surefire-reports/
             target/site/jacoco/
