@@ -7,6 +7,10 @@ import java.util.List;
 
 public interface HorarioRepository extends JpaRepository<Horario, Long> {
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("select h from Horario h where h.id = :id")
+    java.util.Optional<Horario> bloquearPorId(@org.springframework.data.repository.query.Param("id") Long id);
+
     boolean existsByProfessorId(Long professorId);
     boolean existsByDisciplinaId(Long disciplinaId);
     boolean existsByTurmaId(Long turmaId);
