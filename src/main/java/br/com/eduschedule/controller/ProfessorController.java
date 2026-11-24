@@ -56,4 +56,8 @@ public class ProfessorController {
     public List<HorarioSaida> consultarHorarios(@PathVariable Long id) {
         return horarios.porProfessor(id);
     }
+    @GetMapping("/{id}/carga-horaria")
+    public HorarioService.CargaSemanal cargaHoraria(@PathVariable Long id) {
+        return horarios.cargaSemanal(id);
+    }
 }
