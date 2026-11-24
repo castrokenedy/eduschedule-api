@@ -99,6 +99,60 @@ class ApiIntegrationTests {
             .andExpect(jsonPath("$.horarios").value(1));
     }
 
+    @Test
+    void deveExecutarCrudDisciplinaETurma() throws Exception {
+        var auth = httpBasic("teste", "senha-exclusiva-de-teste");
+        for (String recurso : java.util.List.of("disciplinas", "turmas")) {
+            boolean disciplina = recurso.equals("disciplinas");
+            var inicial = disciplina
+                ? Map.of("nome", "Redes", "codigo", "NET", "cargaHoraria", 60)
+                : Map.of("nome", "ADS D", "periodo", 4, "semestre", "2026.2");
+            var atualizado = disciplina
+                ? Map.of("nome", "Redes II", "codigo", "NET", "cargaHoraria", 80)
+                : Map.of("nome", "ADS E", "periodo", 5, "semestre", "2026.2");
+            long id = criar(recurso, inicial);
+            mvc.perform(get("/api/" + recurso).with(auth))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1));
+            mvc.perform(get("/api/" + recurso + "/{id}", id).with(auth))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.nome").value(inicial.get("nome")));
+            mvc.perform(put("/api/" + recurso + "/{id}", id).with(auth)
+                .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(atualizado)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.nome").value(atualizado.get("nome")));
+            mvc.perform(delete("/api/" + recurso + "/{id}", id).with(auth))
+                .andExpect(status().isNoContent());
+            mvc.perform(get("/api/" + recurso + "/{id}", id).with(auth))
+                .andExpect(status().isNotFound());
+        }
+    }
+
+    @Test
+    void deveEditarEExcluirHorario() throws Exception {
+        long p = criar("professores", Map.of("nome", "Eva", "email", "eva@example.test"));
+        long d = criar("disciplinas", Map.of("nome", "POO", "codigo", "POO", "cargaHoraria", 60));
+        long t = criar("turmas", Map.of("nome", "ADS F", "periodo", 4, "semestre", "2026.2"));
+        long id = criar("horarios", aula(p, d, t, "08:00", "09:00"));
+        var auth = httpBasic("teste", "senha-exclusiva-de-teste");
+        mvc.perform(get("/api/horarios").with(auth))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1));
+        mvc.perform(get("/api/horarios/{id}", id).with(auth))
+            .andExpect(status().isOk());
+        mvc.perform(put("/api/horarios/{id}", id).with(auth)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(json.writeValueAsString(aula(p, d, t, "08:30", "09:30"))))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.horaInicio").value("08:30:00"));
+        mvc.perform(delete("/api/horarios/{id}", id).with(auth)).andExpect(status().isNoContent());
+        mvc.perform(get("/api/horarios/{id}", id).with(auth)).andExpect(status().isNotFound());
+        mvc.perform(get("/api/professores/{id}/horarios", p).with(auth))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void devePublicarDocumentoOpenApi() throws Exception {
+        mvc.perform(get("/v3/api-docs")).andExpect(status().isOk())
+            .andExpect(jsonPath("$.info.title").value("EduSchedule API"))
+            .andExpect(jsonPath("$.components.securitySchemes.basicAuth.scheme").value("basic"));
+    }
+
     private Map<String, Object> aula(long p, long d, long t, String inicio, String fim) {
         return Map.of("professorId", p, "disciplinaId", d, "turmaId", t,
             "diaSemana", "SEGUNDA", "horaInicio", inicio, "horaFim", fim);
