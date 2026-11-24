@@ -67,6 +67,15 @@ public class HorarioService {
         return ordenar(repository.findByTurmaId(id));
     }
 
+    public record CargaSemanal(Long professorId, long aulas, long minutos, long horas, long minutosRestantes) {}
+
+    public CargaSemanal cargaSemanal(Long id) {
+        var agenda = porProfessor(id);
+        long minutos = agenda.stream().mapToLong(a ->
+            java.time.Duration.between(a.horaInicio(), a.horaFim()).toMinutes()).sum();
+        return new CargaSemanal(id, agenda.size(), minutos, minutos / 60, minutos % 60);
+    }
+
     private List<HorarioSaida> ordenar(List<Horario> horarios) {
         return horarios.stream().sorted(Comparator.comparing(Horario::getDiaSemana)
             .thenComparing(Horario::getHoraInicio).thenComparing(Horario::getId))
