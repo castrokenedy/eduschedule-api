@@ -153,6 +153,38 @@ class ApiIntegrationTests {
             .andExpect(jsonPath("$.components.securitySchemes.basicAuth.scheme").value("basic"));
     }
 
+    @Test
+    void deveRejeitarOrdenacaoInvalidaEmTodosOsCadastros() throws Exception {
+        for (String recurso : java.util.List.of("professores", "disciplinas", "turmas", "horarios")) {
+            mvc.perform(get("/api/" + recurso).param("sort", "string")
+                    .with(httpBasic("teste", "senha-exclusiva-de-teste")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value("Campo de ordenacao invalido"));
+        }
+    }
+
+    @Test
+    void deveAceitarPaginacaoEOrdenacaoValidas() throws Exception {
+        criar("turmas", Map.of("nome", "Turma A", "periodo", 4, "semestre", "2026.2"));
+        criar("turmas", Map.of("nome", "Turma B", "periodo", 4, "semestre", "2026.2"));
+        mvc.perform(get("/api/turmas").param("page", "0").param("size", "1")
+                .param("sort", "nome,desc").with(httpBasic("teste", "senha-exclusiva-de-teste")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].nome").value("Turma B"))
+            .andExpect(jsonPath("$.totalElements").value(2));
+    }
+
+    @Test
+    void deveDocumentarCodigosDeCriacaoExclusaoEConflito() throws Exception {
+        mvc.perform(get("/v3/api-docs"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.paths['/api/turmas'].post.responses['201']").exists())
+            .andExpect(jsonPath("$.paths['/api/turmas/{id}'].delete.responses['204']").exists())
+            .andExpect(jsonPath("$.paths['/api/horarios'].post.responses['409']").exists())
+            .andExpect(jsonPath("$.paths['/api/turmas'].get.responses['400']").exists());
+    }
+
     private Map<String, Object> aula(long p, long d, long t, String inicio, String fim) {
         return Map.of("professorId", p, "disciplinaId", d, "turmaId", t,
             "diaSemana", "SEGUNDA", "horaInicio", inicio, "horaFim", fim);
