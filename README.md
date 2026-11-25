@@ -99,4 +99,19 @@ A configuração Docker limita a exposição da API ao computador local. HTTP Ba
 
 ## Estado do projeto
 
-Em desenvolvimento acadêmico. O código implementado ainda está sujeito à compilação, testes e homologação.
+## Resultados da homologação local
+
+Em 24/11/2026, a versão anterior aos ajustes de paginação foi validada com PostgreSQL 16 via Docker e testes automatizados em H2.
+
+| Métrica | Resultado observado |
+| --- | --- |
+| Testes aprovados | 9 de 9 |
+| Falhas, erros e testes ignorados | 0 |
+| Cobertura geral de instruções (JaCoCo) | 95% |
+| Cobertura de instruções nos serviços | 93% |
+| Cobertura geral de ramificações | 68% |
+| Tempo do build Maven | 39,263 s |
+
+A homologação manual confirmou criação (201), consulta (200), edição (200), exclusão (204), rejeição de sobreposição de horários (409), proteção de turma vinculada (409), agendas por professor e turma, carga semanal, indicadores e preservação dos registros após recriação dos containers.
+
+Durante a homologação, uma ordenação inválida enviada pelo Swagger produziu HTTP 500. O código foi ajustado para validar os campos de ordenação e devolver HTTP 400. A documentação OpenAPI também foi revisada e testes de regressão foram acrescentados. Os resultados acima são da versão anterior a essas alterações; a nova suíte e a execução automatizada em PostgreSQL ainda precisam ser confirmadas.
